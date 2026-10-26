@@ -44,7 +44,7 @@ The Mac app is ad-hoc signed. The first time you open a downloaded copy, right-c
 | Edge loop | Double-click an edge |
 | Snap to grid / curves / points, relative steps, edit pivot | Hold X / C / V, hold J, hold D or Insert (see Snapping) |
 | Soft selection | B; hold B + MMB-drag to set the radius |
-| Virtual slider | Click channel names in the Channel Box, then MMB-drag in the viewport. Hold Ctrl for finer steps or Shift for coarser ones. Speed (Slow / Medium / Fast) and Hyperbolic are under Channel Box RMB → Settings |
+| Virtual slider | Click channel names in the Channel Box, then MMB-drag in the viewport. Attribute Editor rows work the same way: click a row label (e.g. an image plane's Width or Offset; Ctrl-click to add more), then MMB-drag in the viewport. Hold Ctrl for finer steps or Shift for coarser ones. Speed (Slow / Medium / Fast) and Hyperbolic are under Channel Box RMB → Settings |
 | Scrub a numeric field | Ctrl + drag left/right on the field: MMB = step, LMB = step × 0.1, RMB = step × 10 (plain MMB-drag also works). Or type a value |
 | Frame selection / all | F / A (Shift for all views) |
 | Wireframe / shaded | 4 / 5 |
@@ -1196,6 +1196,7 @@ The workspace is remembered between sessions.
 
 - **Bridge** (Edit Mesh, option box: divisions): joins two border edge loops or chains, or two face regions (which are removed), with quads. Winding matches the mesh.
 - **Add Divisions** (Edit Mesh, option box: levels): splits the selected faces (or whole meshes) into quads; neighboring faces get the edge points.
+- **Subdivision Surface (Non-Destructive)** (Mesh > Subdivision Surface, like Blender's modifier): the mesh stays the low-poly cage you edit while the viewport draws it subdivided. Choose again for one more level. The Attribute Editor's **subdivision** tab sets Levels Viewport, Render levels and Enabled, and has **Apply** (make it permanent, same as Mesh > Smooth) and **Remove**. It is saved with the scene and copied by Duplicate. Script: `cmds.subdivisionSurface('pCube1', levels=2, renderLevels=3)`, `cmds.subdivisionSurfaceApply('pCube1')`, `cmds.subdivisionSurfaceRemove('pCube1')`.
 - **Connect** (Mesh Tools):
   - edges: joins their midpoints across faces;
   - vertices: joins pairs that share a face.
@@ -1993,9 +1994,12 @@ result is the same either way.
 
 ### Display layers (Layer Editor → Display tab)
 
+The Layer Editor is under the **Channel Box** tab. Each layer row is `[V] [T/R] [colour] name (members)`, like Maya.
+
 - **Membership:** create a layer from the selection; objects belong to one layer, and children follow their
   parent's layer.
 - **V (visibility):** hides the layer's objects.
+- **P (playback):** off = the layer's objects are hidden while the time slider plays and in playblasts (faster playback of heavy geometry). `displayLayerEdit('layer1', playback=False)`.
 - **Display type (click to cycle):**
   - **T, template:** grey wireframe that can't be selected in the viewport.
   - **R, reference:** shaded, but can't be selected.
@@ -2003,6 +2007,38 @@ result is the same either way.
 - **Right-click menu:** add / remove / select objects, rename, delete.
 - Commands: `createDisplayLayer`, `editDisplayLayerMembers`, `removeFromDisplayLayer`, `displayLayerEdit`
   (visible, display, color, rename, moveTo), `selectLayerMembers`, `deleteDisplayLayer`.
+
+### Muscle system (Rigging menu set → Muscle, Muscle shelf)
+
+Like Maya Muscle (cMuscleSystem): skin that sticks to, bulges with, slides over, jiggles with and collides against muscle objects.
+
+**Muscle objects**
+- **Make Capsule:** select joints; each gets a capsule (a bone with volume), parented to it. `radius` / `length` in the Channel Box.
+- **Simple muscle (Muscle Builder):** load **Attach Obj 1 / 2** (select an object, click `<<<`), set the width, **Build / Update**.
+- **Spline muscle** (**Create Spline Muscle**, Maya's cMuscleSpline): select 2+ joints in order; control locators (`cMuscleSplineCtrl`) are spread along them, each parented to the nearest joint, and the muscle curves smoothly through them. Each control has its own `jiggle` weight (0 at the ends).
+- Both follow their controls: shorter = fatter, longer = thinner (`squash` keeps the volume). **Cross Sections** sliders shape them; `flatten` makes them oval; `flex` swells them by hand. **Set Rest Length to Current** makes the current pose neutral.
+- **Collision:** muscles push each other apart where they overlap (`collide`, 0 to turn it off); the tendon ends stay attached.
+- **Jiggle** (`jiggle`, `jiggleStiffness`, `jiggleDamping`) is simulated from the animation, so playing, scrubbing or jumping to any frame gives the same result; editing keys re-simulates.
+
+**Skin setup** (Muscle → Skin Setup)
+- **Apply Muscle System:** select muscles / capsules, then the skin mesh; it works on top of the skinCluster (muscle sticky weights add the bulge).
+- **Convert Smooth Skin to Muscle System:** select a skinned mesh. Each joint gets a capsule, the skin weights become sticky weights to those capsules, and the skinCluster is replaced; the skin moves exactly as before. Connect muscles (Apply Muscle System) and paint sticky weights to them: the skin rides on the muscle surfaces. Sticky weights are normalized like skin weights.
+- **Disconnect Selected Muscles** / **Remove Muscle System**.
+
+**Weights** (Paint Muscle Weights): pick a muscle object in the list, then a map:
+- **sticky:** capsules move the point rigidly, muscles carry it on their surface (converted skin), or add their bulge (on a skinCluster).
+- **sliding:** the point is pushed out wherever the muscle / capsule is now (it slides under the skin; collision).
+- **jiggle:** the point gets that muscle's jiggle.
+- **relax** (one map for the skin): smooths the muscle effect so weight borders don't crease.
+**Reset Muscle Weights to Default** recomputes the falloff weights of the muscles.
+
+Put muscles and capsules on a display layer to hide them or make them reference while animating.
+Commands: `muscleCapsule`, `muscleCreate`, `muscleSplineCreate`, `muscleEdit`, `muscleApply`, `muscleConnect`, `muscleDisconnect`, `muscleConvertSkin`, `muscleSetWeights(mesh, kind, value, vertices, influence)`, `muscleWeights`, `muscleResetWeights`, `muscleInfluences`, `muscleList`.
+
+### Right panel tab layout
+
+Right-click the Channel Box / Modeling Toolkit / Attribute Editor / Tool Settings tabs and choose **Horizontal Tabs (top)**
+or **Vertical Tabs (side)**. The choice is saved; it is also in Preferences → Interface.
 
 ### File references (File → Create Reference, Reference Editor)
 
